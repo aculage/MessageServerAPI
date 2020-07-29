@@ -1,33 +1,27 @@
+//This is program start point
 package main
 
 import (
 	mservapi "MessageServer/cmd/internal/app/apiserver"
-	"flag"
-	"fmt"
-	"github.com/pelletier/go-toml"
-	"io/ioutil"
+	//"flag"
+
+
 	"log"
-	"os"
+
 )
 
-var confpath string
+/*var confpath string
 
 func init() {
 	flag.StringVar(&confpath, "config-path", "configs/mservapi.toml", "path to cfg file")
 
-}
+}*/
 
 func main() {
-	flag.Parse()
-	config := mservapi.NewConfig()
-
-	cfg, _ := toml.Marshal(config)
-	fmt.Print(string(cfg))
-	fmt.Fprintf()
-	fmt.Print(err)
+	//flag.Parse()
 
 	//server start point
-	serverInstance := mservapi.New(config)
+	serverInstance := mservapi.New(mservapi.GetConfig())
 	if err := serverInstance.Start(); err != nil {
 		log.Fatal(err)
 	}
