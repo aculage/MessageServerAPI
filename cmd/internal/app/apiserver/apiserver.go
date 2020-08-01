@@ -2,11 +2,14 @@
 package mservapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/pelletier/go-toml"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
+	"github.com/google/uuid"
 )
 
 //ApiServer
@@ -15,27 +18,27 @@ type APIServer struct{
 }
 
 type User struct{
-	id rune
-	username string
-	created_at time.Time
+	Username string
+	Id uuid.UUID
+	Created_at time.Time
 }
 
 type Chat struct{
-	id rune
-	name string
-	users []User
-	created_at time.Time
+	Id uuid.UUID
+	Name string
+	Users []User
+	Created_at time.Time
 }
 
 type Message struct{
-	id int64
-	chat *rune
-	author *rune
-	text string
-	created_at time.Time
+	Id int64
+	Chat *rune
+	Author *uuid.UUID
+	Text string
+	Created_at time.Time
 }
 
-//New ...
+//New server
 func New(config *Config) *APIServer{
 	f,_ := toml.Marshal(config)
 	fmt.Println("Starting server.\nCurrent config:\n" + string(f))
@@ -58,10 +61,32 @@ func (server *APIServer) Start() error{
 
  //TODO rewrite functions into post responsive
 func userAdd(w http.ResponseWriter, r *http.Request){
-	fmt.Fprintf(w, "userAdd")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("userAdd: %s \n ",string(body))
+	var u User
+	err = json.Unmarshal(body, &u)
+	u.Created_at = time.Now()
+	u.Id = uuid.New()
+	//todo check for existence of the same user in database
+	if err != nil{
+		log.Fatal(err)
+	}
+	ujson, _ := json.MarshalIndent(u,""," ")
+	log.Print("User added:\n", string(ujson))
+	w.Write([]byte(u.Id.String()))
+
+
+
 }
 func chatAdd(w http.ResponseWriter, r *http.Request){
-	fmt.Fprintf(w, "chatAdd")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(string(body))
 }
 func messageAdd(w http.ResponseWriter, r *http.Request){
 	fmt.Fprintf(w, "messageAdd")
