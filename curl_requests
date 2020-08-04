@@ -1,0 +1,5 @@
+rewritten curl requests for win terminal
+curl.exe -d '{\"username\": \"user_1\"}' -H "Content-Type: application/json" -X POST http://localhost:9000/users/add
+curl.exe -d '' -H "Content-Type: application/json" -X POST http://localhost:9000/users/add
+curl.exe -d '{\"name\": \"chat_1\", \"users\": [\"<USER_ID_1>\", \"<USER_ID_2>\"]}' -H "Content-Type: application/json" -X POST http://localhost:9000/chats/add
+curl.exe -d '{\"chat\": \"<CHAT_ID>\", \"author\": \"<USER_ID>\", \"text\": \"hi\"}'  -H "Content-Type: application/json" -X POST http://localhost:9000/messages/add
