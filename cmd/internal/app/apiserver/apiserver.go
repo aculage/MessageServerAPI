@@ -4,17 +4,21 @@ package mservapi
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/pelletier/go-toml"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
-	"github.com/google/uuid"
+	//"github.com/jackc/pgx"
+	"github.com/gorilla/mux"
 )
 
 //ApiServer
 type APIServer struct{
 	config *Config
+	router *mux.Router
+	storage *Storage
 }
 
 type User struct{
@@ -39,24 +43,29 @@ type Message struct{
 }
 
 //New server
-func New(config *Config) *APIServer{
+func New(config *Config, dbconfig *DBConfig) *APIServer{
 	f,_ := toml.Marshal(config)
-	fmt.Println("Starting server.\nCurrent config:\n" + string(f))
+	db,_ := toml.Marshal(dbconfig)
+	log.Println("Starting server.\nCurrent config:\n" + string(f) + "\nCurrent database config:\n" + string(db))
 	return &APIServer{
-		config: config,
+		config:  config,
+		router:  mux.NewRouter(),
+		storage: NewStorage(dbconfig),
 	}
 }
 
 func (server *APIServer) Start() error{
-
-
-	http.HandleFunc("/users/add", userAdd)
-	http.HandleFunc("/chats/add", chatAdd)
-	http.HandleFunc("/messages/add", messageAdd)
-	http.HandleFunc("/chats/get", chatGet)
-	http.HandleFunc("/messages/get", messageGet)
-	log.Fatal(http.ListenAndServe(server.config.BindAddress,nil))
+	server.configureRouter()
+	server.storage.Open()
+	log.Fatal(http.ListenAndServe(server.config.BindAddress,server.router))
 	return nil
+}
+func (server *APIServer) configureRouter(){
+	server.router.HandleFunc("/users/add", userAdd)
+	server.router.HandleFunc("/chats/add", chatAdd)
+	server.router.HandleFunc("/messages/add", messageAdd)
+	server.router.HandleFunc("/chats/get", chatGet)
+	server.router.HandleFunc("/messages/get", messageGet)
 }
 
  //TODO rewrite functions into post responsive
@@ -134,6 +143,7 @@ func messageAdd(w http.ResponseWriter, r *http.Request){
 	mjson, _ := json.MarshalIndent(m,""," ") //make json output look readable
 
 	//TODO push message into a chat
+
 	log.Print("Message sent:\n", string(mjson)) //logging message
 
 }

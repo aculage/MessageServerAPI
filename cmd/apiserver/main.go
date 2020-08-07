@@ -9,7 +9,7 @@ import (
 
 func main() {
 	//server start point
-	serverInstance := mservapi.New(mservapi.GetConfig())
+	serverInstance := mservapi.New(mservapi.GetConfig(), mservapi.GetDBConfig())
 	if err := serverInstance.Start(); err != nil {
 		log.Fatal(err)
 	}

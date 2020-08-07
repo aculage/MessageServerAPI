@@ -1,4 +1,4 @@
-//This module is responsible for config struct and its behaviour
+//This module is responsible for config structs and their behaviour
 package mservapi
 
 import (
@@ -10,6 +10,10 @@ import (
 
 type Config struct {
 	BindAddress string `toml:"bind_address"`
+}
+
+type DBConfig struct{
+	DatabaseURL string `toml:"database-url"`
 }
 func NewConfig() *Config{
 	return &Config{
@@ -38,9 +42,43 @@ func GetConfig() *Config{
 		return config //return ptr to object created
 	}
 	//If file exists and accessible
-		config := Config{}
+		config := NewConfig()
 		cfgfromfile, _ := ioutil.ReadFile("configs/mservapi.toml")
 		toml.Unmarshal(cfgfromfile, &config)
-		return &config
+		return config
+
+}
+
+func NewDBConfig() *DBConfig{
+	return &DBConfig{
+		DatabaseURL: "",
+	}
+}
+func GetDBConfig() *DBConfig{
+
+	_,err := os.Stat("configs/db.toml") //Try open the cfg file
+	//If file read-only or nonexistent:
+	if err != nil{
+		log.Println("Database config file missing or unreachable.\nUsing default config.")
+
+		config := NewDBConfig() //new config created
+		cfg, _ := toml.Marshal(config) //config marshaled into toml format
+		_ = os.Mkdir("configs",0755)
+
+		//config written into a new file
+		cfgfile, err := os.Create("configs/db.toml")
+		if err != nil{
+			defer log.Println(err)
+			panic("Something went wrong with database config file, current database config will not be saved.")
+		}
+
+		cfgfile.Write(cfg) //actual byte[] input into the file
+		return config //return ptr to object created
+	}
+	//If file exists and accessible
+	config := NewDBConfig()
+	cfgfromfile, _ := ioutil.ReadFile("configs/db.toml")
+	toml.Unmarshal(cfgfromfile, config)
+	return config
 
 }
