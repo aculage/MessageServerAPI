@@ -3,3 +3,13 @@ curl.exe -d '{\"username\": \"user_1\"}' -H "Content-Type: application/json" -X 
 curl.exe -d '' -H "Content-Type: application/json" -X POST http://localhost:9000/users/add
 curl.exe -d '{\"name\": \"chat_1\", \"users\": [\"<USER_ID_1>\", \"<USER_ID_2>\"]}' -H "Content-Type: application/json" -X POST http://localhost:9000/chats/add
 curl.exe -d '{\"chat\": \"<CHAT_ID>\", \"author\": \"<USER_ID>\", \"text\": \"hi\"}'  -H "Content-Type: application/json" -X POST http://localhost:9000/messages/add
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"username": "user_1"}' \
+  http://localhost:9000/users/add
+
+curl --header "Content-Type: application/json" \
+  --request POST \
+  --data '{"name": "chat_1", "users": ["c23e06fa-e20a-408f-84f0-be3233111434", "e09cdba0-e1ab-4cb1-8bdd-aafba4305ba1"]}' \
+  http://localhost:9000/chats/add
