@@ -1,0 +1,19 @@
+version: "1"
+services:
+  server:
+    build: serverapi
+    command: MessageServerAPI/cmd/apiserver/apiserver
+    ports:
+      - 9000:9000
+  postgres:
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    env_file:
+      - database.env
+    volumes:
+    - database-data:/var/lib/postgresql/data/
+volumes:
+  database_data:
+    driver: local

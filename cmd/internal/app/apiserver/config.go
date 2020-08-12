@@ -51,7 +51,7 @@ func GetConfig() *Config{
 
 func NewDBConfig() *DBConfig{
 	return &DBConfig{
-		DatabaseURL: "",
+		DatabaseURL: "user=client password=client host=postgres port=5432 dbname=mservapi_deb sslmode=disable",
 	}
 }
 func GetDBConfig() *DBConfig{
