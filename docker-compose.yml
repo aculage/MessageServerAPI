@@ -1,3 +1,5 @@
+version: "3"
+services:
   postgres:
     image: postgres:latest
     restart: always
@@ -6,12 +8,16 @@
     env_file:
       - database.env
     volumes:
-      - database-data:/var/lib/postgresql/data/
+      - ./var/lib/postgresql/data/
   server:
     build: .
     command: MessageServerAPI/cmd/apiserver/apiserver
     ports:
       - 9000:9000
+    depends_on:
+      - postgres
+
+
 
 
 
