@@ -1,3 +1,7 @@
+CREATE USER client WITH PASSWORD 'client';
+CREATE DATABASE mservapi_deb;
+GRANT ALL PRIVILEGES ON DATABASE mservapi_deb TO client;
+
 CREATE TABLE users (
     id uuid not null primary key,
     username varchar not null unique,

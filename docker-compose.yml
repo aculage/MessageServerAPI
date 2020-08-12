@@ -1,23 +1,29 @@
 version: "3"
 services:
-  postgres:
-    image: postgres:latest
-    restart: always
+  db:
+    image: postgres
     ports:
       - 5432:5432
-    env_file:
-      - database.env
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
-      - ./var/lib/postgresql/data/
+      - database-data:/var/lib/postgresql/data_2/
+      - ./dbscript.sql:/docker-entrypoint-initdb.d/init.sql
   server:
     build: .
+    restart: unless-stopped
     command: MessageServerAPI/cmd/apiserver/apiserver
     ports:
       - 9000:9000
+    expose:
+      - 9000
+      - 5432
     depends_on:
-      - postgres
-
-
+      - db
+volumes:
+  database-data:
 
 
 
