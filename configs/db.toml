@@ -1,1 +1,0 @@
-database-url = "user=client password=client host=localhost dbname=mservapi_deb sslmode=disable"
