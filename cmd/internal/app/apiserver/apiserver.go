@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
+	"strings"
 	"time"
 )
 
@@ -67,7 +69,6 @@ func (server *APIServer) configureRouter(){
 	server.router.HandleFunc("/messages/get", server.messageGet)
 }
 
- //TODO rewrite functions into post responsive
 func (server *APIServer) userAdd(w http.ResponseWriter, r *http.Request){
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -120,13 +121,16 @@ func (server *APIServer) chatAdd(w http.ResponseWriter, r *http.Request){
 	userExists := true
 	for _,u:= range c.Users{
 		res,_ :=server.storage.Db.Query("SELECT EXISTS(SELECT id FROM users WHERE id = $1)", u)
-		user_found:=res.Next()
-		if !user_found {
+		var queryresult bool
+		res.Next()
+		res.Scan(&queryresult)
+		if !queryresult{
 			//TODO return http code
 			userExists = false
 			log.Printf("User Id: $1 does not exist\n",u)
 			w.Write([]byte("User Id: "+ u.String() + " does not exist\n"))
 		}
+		res.Close()
 	}
 	if !userExists{
 		w.WriteHeader(422)
@@ -157,36 +161,127 @@ func (server *APIServer) messageAdd(w http.ResponseWriter, r *http.Request){
 
 	var m Message
 	err = json.Unmarshal(body, &m)
-	//TODO make validator -- hint: if anything before text is invalid, text will be empty
+
 	if err != nil{
 		log.Print(err)
 	}
-	//TODO check if chat exists
+	//check if chat exists
 
-		res,_ :=server.storage.Db.Query("SELECT EXISTS(SELECT id FROM users WHERE id = $1)", m.Chat)
-
-		if !res.Next() {
-			//TODO return http code
+		res,_ :=server.storage.Db.Query("SELECT EXISTS(SELECT id FROM chats WHERE id = $1)", m.Chat)
+		defer res.Close()
+		res.Next()
+		var chatexists bool
+		res.Scan(&chatexists)
+		if !chatexists {
+			// return http code
 			log.Printf("Chat Id: $1 does not exist\n",m.Chat)
+			w.WriteHeader(422)
 			w.Write([]byte("Chat Id: "+ m.Chat.String() + " does not exist\n"))
+			return
 		}
 
-	//TODO check if user is in the chat
-		res,_=server.storage.Db.Query("SELECT users FROM chats WHERE chats.id = $1", m.Chat)
+	//check if user is in the chat
+	res,_=server.storage.Db.Query("SELECT users FROM chats WHERE chats.id = $1", m.Chat)
+	defer res.Close()
+	var user []uuid.UUID
+	var userinchat bool
+	res.Next()
+	res.Scan(pq.Array(&user))
+
+	for _,usr := range user{
+		if reflect.DeepEqual(usr,m.Author){
+
+			userinchat = true
+			break
+		}
+	}
+
+	if !userinchat{
+		w.WriteHeader(403)
+		w.Write([]byte("User is not in the chat"))
+		return
+	}
 	m.Created_at = time.Now()
 	m.Id = uuid.New()
 	mjson, _ := json.MarshalIndent(m,""," ") //make json output look readable
 
-	//TODO push message into a chat
+	//solved : push message into a chat
+	_,err = server.storage.Db.Exec("INSERT INTO messages VALUES($1,$2,$3,$4,$5)",m.Id,m.Chat,m.Author,m.Text,m.Created_at)
+	if err != nil{
+		log.Println(err)
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+	}
+	w.Write([]byte(m.Id.String()))
 	log.Print("Message sent:\n", string(mjson)) //logging message
+	return
 
 }
 
 func (server *APIServer) chatGet(w http.ResponseWriter, r *http.Request){
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Print(err)
+	}
+
+	log.Printf("chatGet: %s \n ",string(body))
+	var u User
+	id := strings.Split(string(body), "\"")
+	//this is bad code, but I have no idea how to make it better
+	for _,inst := range id{
+		u.Id,err = uuid.Parse(inst)
+		if err == nil{
+			break
+		}
+
+	}
+
+	res,_ := server.storage.Db.Query("SELECT id, name, users, creation_time FROM (SELECT DISTINCT chats.id, chats.name, chats.users, chats.creation_time, MAX(messages.creation_time) FROM chats FULL JOIN messages ON chats.id = messages.chat WHERE author = $1 GROUP BY chats.id) AS maxer",u.Id)
+	defer res.Close()
+	chat:= Chat{}
+	isfound := false
+	for res.Next(){
+		isfound = true
+		res.Scan(&chat.Id,&chat.Name,pq.Array(&chat.Users),&chat.Created_at)
+		cjson, _ := json.MarshalIndent(chat,""," ") //make json output look readable
+		log.Print("Chat found:\n", string(cjson)) //logging user
+		w.Write(cjson)
+	}
+	if !isfound{
+		w.WriteHeader(404)
+		w.Write([]byte("No chats found"))
+	}
 	return
 }
 
 func (server *APIServer) messageGet(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("messageGet: %s \n ",string(body))
+
+	var m Message
+	err = json.Unmarshal(body, &m)
+
+	if err != nil{
+		log.Print(err)
+	}
+	res,_ := server.storage.Db.Query("SELECT * FROM messages WHERE chat = $1 ORDER BY creation_time DESC",m.Chat)
+	defer res.Close()
+
+	isfound := false
+	for res.Next(){
+		isfound = true
+		res.Scan(&m.Id,&m.Chat,&m.Author,&m.Text,&m.Created_at)
+		mjson, _ := json.Marshal(m) //make json output look readable
+		log.Print("Message found:\n", string(mjson)) //logging user
+		w.Write(mjson)
+	}
+	if !isfound{
+		w.WriteHeader(404)
+		w.Write([]byte("No messages found"))
+	}
 	return
 }
 
