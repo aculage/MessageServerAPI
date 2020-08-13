@@ -1,4 +1,4 @@
 Для запуска api:
 
-git pull https://github.com/arseniculage/MessageServerAPI/new/master
+git pull https://github.com/arseniculage/MessageServerAPI/
 sudo docker-compose up
